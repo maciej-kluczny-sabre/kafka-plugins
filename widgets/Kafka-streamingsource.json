@@ -117,15 +117,15 @@
             },
             {
               "name": "key",
-              "type": ["bytes"]
+              "type": ["bytes", "null"]
             },
             {
               "name": "timestamp",
-              "type": ["long"]
+              "type": ["long", "null"]
             },
             {
               "name": "offset",
-              "type": ["long"]
+              "type": ["long", "null"]
             }
           ]
         },

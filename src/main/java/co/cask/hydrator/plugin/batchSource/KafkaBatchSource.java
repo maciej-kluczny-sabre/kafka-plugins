@@ -46,8 +46,6 @@ import com.google.common.base.Strings;
 import kafka.common.TopicAndPartition;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -65,7 +63,6 @@ import javax.annotation.Nullable;
 @Name(KafkaBatchSource.NAME)
 @Description("Kafka batch source.")
 public class KafkaBatchSource extends BatchSource<KafkaKey, KafkaMessage, StructuredRecord> {
-  private static final Logger LOG = LoggerFactory.getLogger(KafkaBatchSource.class);
   public static final String NAME = "Kafka";
   private static final String OFFSET_TABLE_NAME = "__kafka_batch_source_offsets";
 
@@ -320,17 +317,17 @@ public class KafkaBatchSource extends BatchSource<KafkaKey, KafkaMessage, Struct
       // if format is empty, there must be just a single message field of type bytes or nullable types.
       if (Strings.isNullOrEmpty(format)) {
         List<Schema.Field> messageFields = messageSchema.getFields();
-        if (messageFields.size() > 1) {
-          List<String> fieldNames = new ArrayList<>();
-          for (Schema.Field messageField : messageFields) {
-            fieldNames.add(messageField.getName());
-          }
-          throw new IllegalArgumentException(String.format(
-            "Without a format, the schema must contain just a single message field of type bytes or nullable bytes. " +
-              "Found %s message fields (%s).", messageFields.size(), Joiner.on(',').join(fieldNames)));
-        }
+//        if (messageFields.size() > 1) {
+//          List<String> fieldNames = new ArrayList<>();
+//          for (Schema.Field messageField : messageFields) {
+//            fieldNames.add(messageField.getName());
+//          }
+//          throw new IllegalArgumentException(String.format(
+//            "Without a format, the schema must contain just a single message field of type bytes or nullable bytes. " +
+//              "Found %s message fields (%s).", messageFields.size(), Joiner.on(',').join(fieldNames)));
+//        }
 
-        Schema.Field messageField = messageFields.get(0);
+        Schema.Field messageField = messageFields.get(0); //maybe an issue
         Schema messageFieldSchema = messageField.getSchema();
         Schema.Type messageFieldType = messageFieldSchema.isNullable() ?
           messageFieldSchema.getNonNullable().getType() : messageFieldSchema.getType();
@@ -418,17 +415,13 @@ public class KafkaBatchSource extends BatchSource<KafkaKey, KafkaMessage, Struct
   @Override
   public void transform(KeyValue<KafkaKey, KafkaMessage> input, Emitter<StructuredRecord> emitter) throws Exception {
     StructuredRecord.Builder builder = StructuredRecord.builder(schema);
-    LOG.info("key value is: {}", config.getKeyField());
-    if (config.getKeyField() != null) {
-      LOG.info("key value is: {}", config.getKeyField());
+    if (input.getValue().getKey() != null) {
       builder.set(config.getKeyField(), input.getValue().getKey().array());
     }
     if (config.getPartitionField() != null) {
       builder.set(config.getPartitionField(), input.getKey().getPartition());
     }
-    if (config.getOffsetField() != null) {
       builder.set(config.getOffsetField(), input.getKey().getOffset());
-    }
     if (config.getFormat() == null) {
       builder.set(messageField, input.getValue().getPayload().array());
     } else {

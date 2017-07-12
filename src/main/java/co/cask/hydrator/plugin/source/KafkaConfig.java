@@ -113,10 +113,6 @@ public class KafkaConfig extends ReferencePluginConfig implements Serializable {
   @Nullable
   private String offsetField;
 
-  private String timestampField;
-
-  private String messageField;
-
   @Description("Max number of records to read per second per partition. 0 means there is no limit. Defaults to 1000.")
   @Nullable
   private Integer maxRatePerPartition;
@@ -238,11 +234,11 @@ public class KafkaConfig extends ReferencePluginConfig implements Serializable {
         "Schema must contain at least one other field besides the time and key fields.");
     }
 
-    if (getTimeField() != null && !timeFieldExists) {
+    if (!getTimeField().equals("timestamp") && !timeFieldExists) {
       throw new IllegalArgumentException(String.format(
         "timeField '%s' does not exist in the schema. Please add it to the schema.", timeField));
     }
-    if (getKeyField() != null && !keyFieldExists) {
+    if (!getKeyField().equals("key") && !keyFieldExists) {
       throw new IllegalArgumentException(String.format(
         "keyField '%s' does not exist in the schema. Please add it to the schema.", keyField));
     }
@@ -250,7 +246,7 @@ public class KafkaConfig extends ReferencePluginConfig implements Serializable {
       throw new IllegalArgumentException(String.format(
         "partitionField '%s' does not exist in the schema. Please add it to the schema.", partitionField));
     }
-    if (getOffsetField() != null && !offsetFieldExists) {
+    if (!getOffsetField().equals("offset") && !offsetFieldExists) {
       throw new IllegalArgumentException(String.format(
         "offsetField '%s' does not exist in the schema. Please add it to the schema.", offsetFieldExists));
     }
@@ -360,7 +356,7 @@ public class KafkaConfig extends ReferencePluginConfig implements Serializable {
     // if format is empty, there must be just a single message field of type bytes or nullable types.
     if (Strings.isNullOrEmpty(format)) {
       List<Schema.Field> messageFields = messageSchema.getFields();
-      if (messageFields.size() > 1) {
+      /*if (messageFields.size() > 1) {
         List<String> fieldNames = new ArrayList<>();
         for (Schema.Field messageField : messageFields) {
           fieldNames.add(messageField.getName());
@@ -368,7 +364,7 @@ public class KafkaConfig extends ReferencePluginConfig implements Serializable {
         throw new IllegalArgumentException(String.format(
           "Without a format, the schema must contain just a single message field of type bytes or nullable bytes. " +
             "Found %s message fields (%s).", messageFields.size(), Joiner.on(',').join(fieldNames)));
-      }
+      }*/
 
       Schema.Field messageField = messageFields.get(0);
       Schema messageFieldSchema = messageField.getSchema();
