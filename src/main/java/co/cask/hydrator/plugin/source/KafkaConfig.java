@@ -89,15 +89,17 @@ public class KafkaConfig extends ReferencePluginConfig implements Serializable {
   @Nullable
   private String format;
 
-  @Description("Optional name of the field containing the read time of the batch. " +
-    "If this is not set, no time field will be added to output records. " +
-    "If set, this field must be present in the schema property and must be a long.")
+  @Description("Optional name of the field containing the partition offset the message was read from. " +
+    "A default name of \"timestamp\" is automatically added to the output schema. " +
+    "If the user wishes the change the default name, the new name must be set and must replace the default " +
+    "name in the output schema.")
   @Nullable
   private String timeField;
 
-  @Description("Optional name of the field containing the message key. " +
-    "If this is not set, no key field will be added to output records. " +
-    "If set, this field must be present in the schema property and must be bytes.")
+  @Description("Optional name of the field containing the partition offset the message was read from. " +
+    "A default name of \"key\" is automatically added to the output schema. " +
+    "If the user wishes the change the default name, the new name must be set and must replace the default " +
+    "name in the output schema.")
   @Nullable
   private String keyField;
 
@@ -107,9 +109,10 @@ public class KafkaConfig extends ReferencePluginConfig implements Serializable {
   @Nullable
   private String partitionField;
 
-  @Description("Optional name of the field containing the kafka offset that the message was read from. " +
-    "If this is not set, no offset field will be added to output records. " +
-    "If set, this field must be present in the schema property and must be a long.")
+  @Description("Optional name of the field containing the partition offset the message was read from. " +
+    "A default name of \"offset\" is automatically added to the output schema. " +
+    "If the user wishes the change the default name, the new name must be set and must replace the default " +
+    "name in the output schema.")
   @Nullable
   private String offsetField;
 
@@ -205,12 +208,12 @@ public class KafkaConfig extends ReferencePluginConfig implements Serializable {
       Schema fieldSchema = field.getSchema();
       Schema.Type fieldType = fieldSchema.isNullable() ? fieldSchema.getNonNullable().getType() : fieldSchema.getType();
       // if the field is not the time field and not the key field, it is a message field.
-      if (fieldName.equals(timeField)) {
+      if (fieldName.equals(getTimeField())) {
         if (fieldType != Schema.Type.LONG) {
           throw new IllegalArgumentException("The time field must be of type long or nullable long.");
         }
         timeFieldExists = true;
-      } else if (fieldName.equals(keyField)) {
+      } else if (fieldName.equals(getKeyField())) {
         if (fieldType != Schema.Type.BYTES) {
           throw new IllegalArgumentException("The key field must be of type bytes or nullable bytes.");
         }
@@ -220,9 +223,9 @@ public class KafkaConfig extends ReferencePluginConfig implements Serializable {
           throw new IllegalArgumentException("The partition field must be of type int.");
         }
         partitionFieldExists = true;
-      } else if (fieldName.equals(offsetField)) {
+      } else if (fieldName.equals(getOffsetField())) {
         if (fieldType != Schema.Type.LONG) {
-          throw new IllegalArgumentException("The offset field must be of type long.");
+          throw new IllegalArgumentException("The offset field must be of type long or nullable long.");
         }
         offsetFieldExists = true;
       } else {
@@ -248,7 +251,7 @@ public class KafkaConfig extends ReferencePluginConfig implements Serializable {
     }
     if (!getOffsetField().equals("offset") && !offsetFieldExists) {
       throw new IllegalArgumentException(String.format(
-        "offsetField '%s' does not exist in the schema. Please add it to the schema.", offsetFieldExists));
+        "offsetField '%s' does not exist in the schema. Please add it to the schema.", offsetField));
     }
     return Schema.recordOf("kafka.message", messageFields);
   }
@@ -356,7 +359,7 @@ public class KafkaConfig extends ReferencePluginConfig implements Serializable {
     // if format is empty, there must be just a single message field of type bytes or nullable types.
     if (Strings.isNullOrEmpty(format)) {
       List<Schema.Field> messageFields = messageSchema.getFields();
-      /*if (messageFields.size() > 1) {
+      if (messageFields.size() > 1) {
         List<String> fieldNames = new ArrayList<>();
         for (Schema.Field messageField : messageFields) {
           fieldNames.add(messageField.getName());
@@ -364,7 +367,7 @@ public class KafkaConfig extends ReferencePluginConfig implements Serializable {
         throw new IllegalArgumentException(String.format(
           "Without a format, the schema must contain just a single message field of type bytes or nullable bytes. " +
             "Found %s message fields (%s).", messageFields.size(), Joiner.on(',').join(fieldNames)));
-      }*/
+      }
 
       Schema.Field messageField = messageFields.get(0);
       Schema messageFieldSchema = messageField.getSchema();
